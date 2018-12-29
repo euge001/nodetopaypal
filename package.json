@@ -1,0 +1,26 @@
+{
+  "name": "paypaltonode",
+  "version": "1.0.0",
+  "description": "Basket with NodeJs and PayPal",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/euge001/nodetopaypal.git"
+  },
+  "author": "Yu Qi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/euge001/nodetopaypal/issues"
+  },
+  "homepage": "https://github.com/euge001/nodetopaypal#readme",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "mongodb": "^3.1.10",
+    "paypal-rest-sdk": "^1.8.1"
+  },
+  "devDependencies": {}
+}

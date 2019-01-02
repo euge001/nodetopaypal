@@ -1,5 +1,6 @@
 (configRepo => {
   configRepo.SetConfig = paypal => {
+    console.log("Config Hit");
     var config = {
       host: "api.sandbox.paypal.com",
       port: "",
@@ -8,5 +9,6 @@
       client_secret:
         "EAEku3Yew2sNx8HDNQ870FMMlkqOAc7WbE1vQoFAZhhMjv2T6qAwk_hDV_JGunkLwl3mceoH1eu02bke"
     };
+    paypal.configure(config);
   };
 })(module.exports);

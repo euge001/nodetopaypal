@@ -1,4 +1,4 @@
-((paymentService, paypal, mongoService, OrderID) => {
+((paymentService, paypal, mongoService, ObjectID) => {
   require("./config.js").SetConfig(paypal);
 
   paymentService.CreateItemObj = (name, price, quantity) => {
@@ -10,6 +10,7 @@
     };
     return itemObj;
   };
+
   paymentService.CreateTransactionObj = (
     tax,
     shipping,
@@ -18,8 +19,8 @@
   ) => {
     var total = 0.0;
     for (var i = 0; i < itemList.length; i++) {
-      var newQuantity = itemList[i].quantity;
-      if (newQuantity >= 1) {
+      var newQuant = itemList[i].quantity;
+      if (newQuant >= 1) {
         total += itemList[i].price;
       } else {
         total = itemList[i].price;
@@ -35,12 +36,52 @@
         }
       },
       description: description,
-      item_list: { item: itemList }
+      item_list: { items: itemList }
     };
     return transactionObj;
   };
+
+  paymentService.CreatePaymentCardJSON = (
+    cardType,
+    cardNumber,
+    cardExpireMonth,
+    cardExpireYear,
+    cardCVV2,
+    cardFirstName,
+    cardLastName,
+    billingAddressObj,
+    transactionsArray
+  ) => {
+    var card = {
+      intent: "sale",
+      payer: {
+        payment_method: "credit_card",
+        funding_instruments: [
+          {
+            credit_card: {
+              type: cardType,
+              number: cardNumber,
+              expire_month: cardExpireMonth,
+              expire_year: cardExpireYear,
+              cvv2: cardCVV2,
+              first_name: cardFirstName,
+              last_name: cardLastName,
+              billing_address: billingAddressObj
+            }
+          }
+        ]
+      },
+      transactions: transactionsArray
+    };
+
+    return card;
+  };
+
+  //--------------------------------------------------------
+  //Single Purchases
+
   paymentService.CreateWithPaypal = (
-    transactionArray,
+    transactionsArray,
     returnUrl,
     cancelUrl,
     cb
@@ -54,15 +95,16 @@
       var paymentObj = {
         intent: "sale",
         payer: {
-          payment_detail: "paypal"
+          payment_method: "paypal"
         },
         redirect_urls: {
           return_url: returnUrl + "/" + results.insertedIds[0],
           cancel_url: cancelUrl + "/" + results.insertedIds[0]
         },
-        transactions: transactionArray
+        transactions: transactionsArray
       };
-      payment.payment.create(paymentObj, (err, response) => {
+
+      paypal.payment.create(paymentObj, (err, response) => {
         if (err) {
           return cb(err);
         } else {
@@ -76,8 +118,8 @@
             { _id: results.insertedIds[0] },
             dbObj,
             (err, results) => {
-              for (var i = 0; i < response.link.length; i++) {
-                if (response.link[i].rel == "approval_url") {
+              for (var i = 0; i < response.links.length; i++) {
+                if (response.links[i].rel == "approval_url") {
                   return cb(null, response.links[i].href);
                 }
               }
@@ -87,9 +129,11 @@
       });
     });
   };
+
   paymentService.GetPayment = (paymentID, cb) => {
-    payment.payment.get(paymentID, (err, payment) => {
+    paypal.payment.get(paymentID, (err, payment) => {
       if (err) {
+        console.log(err);
         return cb(err);
       } else {
         return cb(null, payment);
@@ -99,12 +143,13 @@
 
   paymentService.ExecutePayment = (payerID, orderID, cb) => {
     var payerObj = { payer_id: payerID };
+
     mongoService.Read(
       "paypal_orders",
       { _id: new ObjectID(orderID) },
       (err, results) => {
         if (results) {
-          payment.payment.execute(
+          paypal.payment.execute(
             results[0].OrderID,
             payerObj,
             {},
@@ -121,18 +166,19 @@
                   { _id: new ObjectID(orderID) },
                   updateObj,
                   (err, update_results) => {
-                    return cb(err, orderID);
+                    return cb(null, orderID);
                   }
                 );
               }
             }
           );
         } else {
-          return cb("no order found for this ID");
+          return cb("no order found for this id");
         }
       }
     );
   };
+
   paymentService.RefundPayment = (saleID, amount, cb) => {
     var data = {
       amount: {
@@ -140,6 +186,7 @@
         total: amount
       }
     };
+
     paypal.sale.refund(saleID, data, (err, refund) => {
       if (err) {
         return cb(err);
@@ -152,5 +199,5 @@
   module.exports,
   require("paypal-rest-sdk"),
   require("./mongoService.js"),
-  require("mongodb").OrderID
+  require("mongodb").ObjectId
 );
